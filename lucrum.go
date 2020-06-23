@@ -173,9 +173,25 @@ func (luc *Lucrum) updateStockRows() {
 	}
 }
 
+func (luc *Lucrum) symbolExists(s string) bool {
+	for _, sym := range luc.symbols {
+		if sym == s {
+			return true
+		}
+	}
+	return false
+}
+
 func (luc *Lucrum) addSymbols(s []string) {
 	luc.stockMutex.Lock()
-	luc.symbols = append(luc.symbols, s...)
+	var toAdd []string
+	for _, sym := range s {
+		upperSym := strings.ToUpper(sym)
+		if !luc.symbolExists(upperSym) {
+			toAdd = append(toAdd, upperSym)
+		}
+	}
+	luc.symbols = append(luc.symbols, toAdd...)
 	err := luc.saveConfig()
 	if err != nil {
 		panic(err)
@@ -187,6 +203,7 @@ func (luc *Lucrum) addSymbols(s []string) {
 func (luc *Lucrum) removeSymbols(s string) {
 	luc.stockMutex.Lock()
 	index := -1
+	s = strings.ToUpper(s)
 	for key, val := range luc.symbols {
 		if val == s {
 			index = key
