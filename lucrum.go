@@ -18,7 +18,6 @@ type Lucrum struct {
 	stockTable     *tview.Table
 	stockMutex     *sync.Mutex
 	stocks         []yahoofinance.Stock
-	symbols        []string
 	tviewApp       *tview.Application
 	updateInterval time.Duration
 	lastUpdate     time.Time
@@ -39,7 +38,7 @@ func Init() *Lucrum {
 			panic(err)
 		}
 	} else if os.IsNotExist(err) {
-		luc.symbols = []string{"ORCL", "AAPL", "IBM"}
+		luc.stocks = append(luc.stocks, yahoofinance.Stock{Symbol: "ORCL"}, yahoofinance.Stock{Symbol: "AAPL"}, yahoofinance.Stock{Symbol: "IBM"})
 	}
 
 	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
@@ -152,7 +151,8 @@ func (luc *Lucrum) refresh() {
 
 func (luc *Lucrum) updateStocks() {
 	var err error
-	luc.stocks, err = yahoofinance.FetchQuote(luc.symbols)
+
+	luc.stocks, err = yahoofinance.FetchQuote(luc.getSymbols())
 	if err != nil {
 		panic(err)
 	}
@@ -174,7 +174,7 @@ func (luc *Lucrum) updateStockRows() {
 }
 
 func (luc *Lucrum) symbolExists(s string) bool {
-	for _, sym := range luc.symbols {
+	for _, sym := range luc.getSymbols() {
 		if sym == s {
 			return true
 		}
@@ -184,14 +184,14 @@ func (luc *Lucrum) symbolExists(s string) bool {
 
 func (luc *Lucrum) addSymbols(s []string) {
 	luc.stockMutex.Lock()
-	var toAdd []string
+	var toAdd []yahoofinance.Stock
 	for _, sym := range s {
 		upperSym := strings.ToUpper(sym)
 		if !luc.symbolExists(upperSym) {
-			toAdd = append(toAdd, upperSym)
+			toAdd = append(toAdd, yahoofinance.Stock{Symbol: upperSym})
 		}
 	}
-	luc.symbols = append(luc.symbols, toAdd...)
+	luc.stocks = append(luc.stocks, toAdd...)
 	err := luc.saveConfig()
 	if err != nil {
 		panic(err)
@@ -204,14 +204,14 @@ func (luc *Lucrum) removeSymbols(s string) {
 	luc.stockMutex.Lock()
 	index := -1
 	s = strings.ToUpper(s)
-	for key, val := range luc.symbols {
-		if val == s {
+	for key, val := range luc.stocks {
+		if val.Symbol == s {
 			index = key
 			break
 		}
 	}
 	if index != -1 {
-		luc.symbols = append(luc.symbols[:index], luc.symbols[index+1:]...)
+		luc.stocks = append(luc.stocks[:index], luc.stocks[index+1:]...)
 		err := luc.saveConfig()
 		if err != nil {
 			panic(err)
@@ -237,7 +237,9 @@ func (luc *Lucrum) loadConfig() error {
 	if _, err := toml.DecodeFile(path, &conf); err != nil {
 		return err
 	}
-	luc.symbols = conf.Symbols
+	for _, sym := range conf.Symbols {
+		luc.stocks = append(luc.stocks, yahoofinance.Stock{Symbol: sym})
+	}
 	return nil
 }
 
@@ -245,7 +247,7 @@ func (luc *Lucrum) saveConfig() error {
 	path := luc.configPath
 	conf := &config{}
 
-	conf.Symbols = luc.symbols
+	conf.Symbols = luc.getSymbols()
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -257,4 +259,12 @@ func (luc *Lucrum) saveConfig() error {
 		return err
 	}
 	return nil
+}
+
+func (luc *Lucrum) getSymbols() []string {
+	var symbols []string
+	for _, stock := range luc.stocks {
+		symbols = append(symbols, stock.Symbol)
+	}
+	return symbols
 }
