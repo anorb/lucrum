@@ -53,8 +53,7 @@ func Init() *Lucrum {
 	for key, val := range headerLabels {
 		luc.stockTable.SetCell(0, key, tview.NewTableCell(val).
 			SetAlign(tview.AlignRight).
-			SetAttributes(tcell.AttrBold).
-			SetBackgroundColor(tcell.ColorPaleVioletRed))
+			SetAttributes(tcell.AttrBold))
 	}
 
 	luc.initKeys()
@@ -162,13 +161,19 @@ func (luc *Lucrum) updateStocks() {
 func (luc *Lucrum) updateStockRows() {
 	rowOffset := 1
 	for _, s := range luc.stocks {
-		luc.stockTable.SetCell(rowOffset, 0, tview.NewTableCell(s.Symbol).SetAlign(tview.AlignRight))
-		luc.stockTable.SetCell(rowOffset, 1, tview.NewTableCell(s.FormattedRegularMarketPrice).SetAlign(tview.AlignRight))
-		luc.stockTable.SetCell(rowOffset, 2, tview.NewTableCell(s.FormattedRegularMarketChange).SetAlign(tview.AlignRight))
-		luc.stockTable.SetCell(rowOffset, 3, tview.NewTableCell(s.FormattedRegularMarketChangePct).SetAlign(tview.AlignRight))
-		luc.stockTable.SetCell(rowOffset, 4, tview.NewTableCell(s.FormattedRegularMarketDayHigh).SetAlign(tview.AlignRight))
-		luc.stockTable.SetCell(rowOffset, 5, tview.NewTableCell(s.FormattedRegularMarketDayLow).SetAlign(tview.AlignRight))
-		luc.stockTable.SetCell(rowOffset, 6, tview.NewTableCell(s.FormattedRegularMarketDayOpen).SetAlign(tview.AlignRight))
+		rowColor := tcell.ColorDefault
+		if s.RegularMarketChange > 0 {
+			rowColor = tcell.ColorPaleGreen
+		} else if s.RegularMarketChange < 0 {
+			rowColor = tcell.ColorPaleVioletRed
+		}
+		luc.stockTable.SetCell(rowOffset, 0, tview.NewTableCell(s.Symbol).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
+		luc.stockTable.SetCell(rowOffset, 1, tview.NewTableCell(s.FormattedRegularMarketPrice).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
+		luc.stockTable.SetCell(rowOffset, 2, tview.NewTableCell(s.FormattedRegularMarketChange).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
+		luc.stockTable.SetCell(rowOffset, 3, tview.NewTableCell(s.FormattedRegularMarketChangePct).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
+		luc.stockTable.SetCell(rowOffset, 4, tview.NewTableCell(s.FormattedRegularMarketDayHigh).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
+		luc.stockTable.SetCell(rowOffset, 5, tview.NewTableCell(s.FormattedRegularMarketDayLow).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
+		luc.stockTable.SetCell(rowOffset, 6, tview.NewTableCell(s.FormattedRegularMarketDayOpen).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
 		rowOffset++
 	}
 }
