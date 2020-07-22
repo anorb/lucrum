@@ -125,7 +125,7 @@ func (luc *Lucrum) initKeys() {
 			input.SetDoneFunc(func(key tcell.Key) {
 				if key == tcell.KeyEnter {
 					text := input.GetText()
-					luc.removeSymbols(text)
+					luc.removeSymbols(strings.Split(text, " "))
 				}
 			})
 
@@ -167,13 +167,13 @@ func (luc *Lucrum) updateStockRows() {
 		} else if s.RegularMarketChange < 0 {
 			rowColor = tcell.ColorPaleVioletRed
 		}
-		luc.stockTable.SetCell(rowOffset, 0, tview.NewTableCell(s.Symbol).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
-		luc.stockTable.SetCell(rowOffset, 1, tview.NewTableCell(s.FormattedRegularMarketPrice).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
-		luc.stockTable.SetCell(rowOffset, 2, tview.NewTableCell(s.FormattedRegularMarketChange).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
-		luc.stockTable.SetCell(rowOffset, 3, tview.NewTableCell(s.FormattedRegularMarketChangePct).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
-		luc.stockTable.SetCell(rowOffset, 4, tview.NewTableCell(s.FormattedRegularMarketDayHigh).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
-		luc.stockTable.SetCell(rowOffset, 5, tview.NewTableCell(s.FormattedRegularMarketDayLow).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
-		luc.stockTable.SetCell(rowOffset, 6, tview.NewTableCell(s.FormattedRegularMarketDayOpen).SetAlign(tview.AlignRight).SetBackgroundColor(rowColor))
+		luc.stockTable.SetCell(rowOffset, 0, generateCell(s.Symbol, tview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 1, generateCell(s.FormattedRegularMarketPrice, tview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 2, generateCell(s.FormattedRegularMarketChange, tview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 3, generateCell(s.FormattedRegularMarketChangePct, tview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 4, generateCell(s.FormattedRegularMarketDayHigh, tview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 5, generateCell(s.FormattedRegularMarketDayLow, tview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 6, generateCell(s.FormattedRegularMarketDayOpen, tview.AlignRight, rowColor))
 		rowOffset++
 	}
 }
@@ -205,31 +205,32 @@ func (luc *Lucrum) addSymbols(s []string) {
 	luc.refresh()
 }
 
-func (luc *Lucrum) removeSymbols(s string) {
+func (luc *Lucrum) removeSymbols(s []string) {
 	luc.stockMutex.Lock()
-	index := -1
-	s = strings.ToUpper(s)
-	for key, val := range luc.stocks {
-		if val.Symbol == s {
-			index = key
-			break
-		}
-	}
-	if index != -1 {
-		luc.stocks = append(luc.stocks[:index], luc.stocks[index+1:]...)
-		err := luc.saveConfig()
-		if err != nil {
-			panic(err)
-		}
-		// Remove row from table
-		for i := 0; i < luc.stockTable.GetRowCount(); i++ {
-			// Get the cell containing the symbol
-			c := luc.stockTable.GetCell(i, 0)
-			if c.Text == s {
-				luc.stockTable.RemoveRow(i)
+	for _, sym := range s {
+		index := -1
+		sym = strings.ToUpper(sym)
+		for key, val := range luc.stocks {
+			if val.Symbol == sym {
+				index = key
 				break
 			}
-
+		}
+		if index != -1 {
+			luc.stocks = append(luc.stocks[:index], luc.stocks[index+1:]...)
+			err := luc.saveConfig()
+			if err != nil {
+				panic(err)
+			}
+			// Remove row from table
+			for i := 0; i < luc.stockTable.GetRowCount(); i++ {
+				// Get the cell containing the symbol
+				c := luc.stockTable.GetCell(i, 0)
+				if c.Text == sym {
+					luc.stockTable.RemoveRow(i)
+					break
+				}
+			}
 		}
 	}
 	luc.stockMutex.Unlock()
@@ -272,4 +273,8 @@ func (luc *Lucrum) getSymbols() []string {
 		symbols = append(symbols, stock.Symbol)
 	}
 	return symbols
+}
+
+func generateCell(content string, align int, background tcell.Color) *tview.TableCell {
+	return tview.NewTableCell(content).SetAlign(align).SetBackgroundColor(background)
 }
