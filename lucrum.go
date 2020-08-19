@@ -10,15 +10,15 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/anorb/lucrum/pkg/yahoofinance"
 	"github.com/gdamore/tcell"
-	"github.com/rivo/tview"
+	"gitlab.com/tslocum/cview"
 )
 
 type Lucrum struct {
-	grid           *tview.Grid
-	stockTable     *tview.Table
+	grid           *cview.Grid
+	stockTable     *cview.Table
 	stockMutex     *sync.Mutex
 	stocks         []yahoofinance.Stock
-	tviewApp       *tview.Application
+	cviewApp       *cview.Application
 	updateInterval time.Duration
 	lastUpdate     time.Time
 	configPath     string
@@ -41,18 +41,18 @@ func Init() *Lucrum {
 		luc.stocks = append(luc.stocks, yahoofinance.Stock{Symbol: "ORCL"}, yahoofinance.Stock{Symbol: "AAPL"}, yahoofinance.Stock{Symbol: "IBM"})
 	}
 
-	tview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
-	tview.Styles.PrimaryTextColor = tcell.ColorDefault
-	luc.tviewApp = tview.NewApplication()
-	luc.stockTable = tview.NewTable().SetBorders(false)
-	luc.grid = tview.NewGrid().AddItem(luc.stockTable, 0, 0, 1, 1, 0, 0, true)
+	cview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+	cview.Styles.PrimaryTextColor = tcell.ColorDefault
+	luc.cviewApp = cview.NewApplication()
+	luc.stockTable = cview.NewTable().SetBorders(false)
+	luc.grid = cview.NewGrid().AddItem(luc.stockTable, 0, 0, 1, 1, 0, 0, true)
 	luc.updateInterval = 5
 	luc.stockMutex = new(sync.Mutex)
 
 	headerLabels := []string{"Symbol", fmt.Sprintf("%15s", "Current"), "Change", "Change%", "High", "Low", "Open"}
 	for key, val := range headerLabels {
-		luc.stockTable.SetCell(0, key, tview.NewTableCell(val).
-			SetAlign(tview.AlignRight).
+		luc.stockTable.SetCell(0, key, cview.NewTableCell(val).
+			SetAlign(cview.AlignRight).
 			SetAttributes(tcell.AttrBold))
 	}
 
@@ -63,7 +63,7 @@ func Init() *Lucrum {
 }
 
 func (luc *Lucrum) Run() {
-	if err := luc.tviewApp.SetRoot(luc.grid, true).EnableMouse(true).Run(); err != nil {
+	if err := luc.cviewApp.SetRoot(luc.grid, true).EnableMouse(true).Run(); err != nil {
 		panic(err)
 	}
 }
@@ -73,7 +73,7 @@ func (luc *Lucrum) UpdateLoop() {
 	for {
 		select {
 		case <-updateTicker.C:
-			luc.tviewApp.QueueUpdateDraw(func() {
+			luc.cviewApp.QueueUpdateDraw(func() {
 				if time.Now().Unix()-luc.lastUpdate.Unix() >= int64(luc.updateInterval) {
 					luc.refresh()
 				}
@@ -85,7 +85,7 @@ func (luc *Lucrum) UpdateLoop() {
 func (luc *Lucrum) initKeys() {
 	luc.stockTable.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEscape {
-			luc.tviewApp.Stop()
+			luc.cviewApp.Stop()
 		}
 	})
 
@@ -94,7 +94,7 @@ func (luc *Lucrum) initKeys() {
 			luc.refresh()
 		}
 		if event.Rune() == 'a' {
-			input := tview.NewInputField().SetLabel("Add: ").SetFieldWidth(100)
+			input := cview.NewInputField().SetLabel("Add: ").SetFieldWidth(100)
 			input.SetFieldBackgroundColor(tcell.ColorDefault)
 			input.SetFieldTextColor(tcell.ColorDefault)
 			input.SetLabelColor(tcell.ColorDefault)
@@ -109,14 +109,14 @@ func (luc *Lucrum) initKeys() {
 
 			input.SetFinishedFunc(func(key tcell.Key) {
 				luc.grid.RemoveItem(input)
-				luc.tviewApp.SetFocus(luc.stockTable)
+				luc.cviewApp.SetFocus(luc.stockTable)
 			})
 
 			luc.grid.AddItem(input, 2, 0, 1, 1, 0, 0, false)
-			luc.tviewApp.SetFocus(input)
+			luc.cviewApp.SetFocus(input)
 		}
 		if event.Rune() == 'r' {
-			input := tview.NewInputField().SetLabel("Remove: ").SetFieldWidth(100)
+			input := cview.NewInputField().SetLabel("Remove: ").SetFieldWidth(100)
 			input.SetFieldBackgroundColor(tcell.ColorDefault)
 			input.SetFieldTextColor(tcell.ColorDefault)
 			input.SetLabelColor(tcell.ColorDefault)
@@ -131,11 +131,11 @@ func (luc *Lucrum) initKeys() {
 
 			input.SetFinishedFunc(func(key tcell.Key) {
 				luc.grid.RemoveItem(input)
-				luc.tviewApp.SetFocus(luc.stockTable)
+				luc.cviewApp.SetFocus(luc.stockTable)
 			})
 
 			luc.grid.AddItem(input, 2, 0, 1, 1, 0, 0, false)
-			luc.tviewApp.SetFocus(input)
+			luc.cviewApp.SetFocus(input)
 		}
 		return event
 	})
@@ -167,13 +167,13 @@ func (luc *Lucrum) updateStockRows() {
 		} else if s.RegularMarketChange < 0 {
 			rowColor = tcell.ColorPaleVioletRed
 		}
-		luc.stockTable.SetCell(rowOffset, 0, generateCell(s.Symbol, tview.AlignRight, rowColor))
-		luc.stockTable.SetCell(rowOffset, 1, generateCell(s.FormattedRegularMarketPrice, tview.AlignRight, rowColor))
-		luc.stockTable.SetCell(rowOffset, 2, generateCell(s.FormattedRegularMarketChange, tview.AlignRight, rowColor))
-		luc.stockTable.SetCell(rowOffset, 3, generateCell(s.FormattedRegularMarketChangePct, tview.AlignRight, rowColor))
-		luc.stockTable.SetCell(rowOffset, 4, generateCell(s.FormattedRegularMarketDayHigh, tview.AlignRight, rowColor))
-		luc.stockTable.SetCell(rowOffset, 5, generateCell(s.FormattedRegularMarketDayLow, tview.AlignRight, rowColor))
-		luc.stockTable.SetCell(rowOffset, 6, generateCell(s.FormattedRegularMarketDayOpen, tview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 0, generateCell(s.Symbol, cview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 1, generateCell(s.FormattedRegularMarketPrice, cview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 2, generateCell(s.FormattedRegularMarketChange, cview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 3, generateCell(s.FormattedRegularMarketChangePct, cview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 4, generateCell(s.FormattedRegularMarketDayHigh, cview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 5, generateCell(s.FormattedRegularMarketDayLow, cview.AlignRight, rowColor))
+		luc.stockTable.SetCell(rowOffset, 6, generateCell(s.FormattedRegularMarketDayOpen, cview.AlignRight, rowColor))
 		rowOffset++
 	}
 }
@@ -275,6 +275,6 @@ func (luc *Lucrum) getSymbols() []string {
 	return symbols
 }
 
-func generateCell(content string, align int, background tcell.Color) *tview.TableCell {
-	return tview.NewTableCell(content).SetAlign(align).SetBackgroundColor(background)
+func generateCell(content string, align int, background tcell.Color) *cview.TableCell {
+	return cview.NewTableCell(content).SetAlign(align).SetBackgroundColor(background)
 }
