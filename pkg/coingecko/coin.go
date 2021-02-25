@@ -50,7 +50,7 @@ type Links struct {
 	AnnouncementURL             []string `json:"announcement_url"`
 	TwitterScreenName           string   `json:"twitter_screen_name"`
 	FacebookUsername            string   `json:"facebook_username"`
-	BitcointalkThreadIdentifier string   `json:"bitcointalk_thread_identifier"`
+	BitcointalkThreadIdentifier int      `json:"bitcointalk_thread_identifier"`
 	TelegramChannelIdentifier   string   `json:"telegram_channel_identifier"`
 	SubredditURL                string   `json:"subreddit_url"`
 	ReposURL                    ReposURL `json:"repos_url"`
