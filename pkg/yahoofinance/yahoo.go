@@ -72,6 +72,14 @@ type Stock struct {
 	TwoHundredDayAverageChangePercent float64 `json:"twoHundredDayAverageChangePercent"`
 	TwoHundredDayAverage              float64 `json:"twoHundredDayAverage"`
 	YtdReturn                         float64 `json:"ytdReturn"`
+	PostMarketChange                  float64 `json:"postMarketChange"`
+	PostMarketChangePercent           float64 `json:"postMarketChangePercent"`
+	PostMarketTime                    int     `json:"postMarketTime"`
+	PostMarketPrice                   float64 `json:"postMarketPrice"`
+	PreMarketChange                   float64 `json:"preMarketChange"`
+	PreMarketChangePercent            float64 `json:"preMarketChangePercent"`
+	PreMarketTime                     int     `json:"preMarketTime"`
+	PreMarketPrice                    float64 `json:"preMarketPrice"`
 	FormattedRegularMarketPrice       string
 	FormattedRegularMarketChange      string
 	FormattedRegularMarketChangePct   string
